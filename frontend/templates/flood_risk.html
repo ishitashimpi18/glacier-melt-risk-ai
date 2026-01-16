@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Flood Risk Assessment</h2>
+
+<div id="flood-map" style="height:400px;"></div>
+
+<table class="table-basic" id="flood-table">
+    <thead>
+        <tr>
+            <th>Year</th>
+            <th>Flood Risk Level</th>
+            <th>Index</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<p style="margin-top:10px;">
+    Warning: High melt rate combined with downstream lakes or narrow valleys increases flood susceptibility.
+</p>
+
+<script>
+Promise.all([
+    fetch("/api/glaciers").then(r => r.json()),
+    fetch("/api/flood_risk").then(r => r.json())
+]).then(([glaciers, flood]) => {
+    // Simple per‑basin marker to illustrate colour codes
+    const map = L.map('flood-map').setView([30, 80], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    const recent = flood[flood.length - 1];
+    let color = recent.flood_risk_level === "High Risk" ? "red"
+                : recent.flood_risk_level === "Moderate Risk" ? "orange" : "green";
+
+    L.circle([30, 80], {
+        radius: 300000,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.4
+    }).addTo(map).bindPopup(`Himalayan basin – ${recent.flood_risk_level}`);
+
+    const tbody = document.querySelector("#flood-table tbody");
+    flood.forEach(r => {
+        const level = r.flood_risk_level;
+        const cls = level === "High Risk" ? "badge-high" :
+                    level === "Moderate Risk" ? "badge-medium" : "badge-low";
+
+        tbody.insertRow().innerHTML = `
+            <td>${r.year}</td>
+            <td><span class="badge ${cls}">${level}</span></td>
+            <td>${r.flood_risk_index.toFixed(2)}</td>
+        `;
+    });
+});
+</script>
+{% endblock %}

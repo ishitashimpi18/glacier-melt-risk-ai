@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="page-title">Himalayan Glacier Explorer</h2>
+
+<div class="explorer-layout">
+
+    <!-- MAP CONTAINER -->
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+
+    <!-- INFO PANEL -->
+    <div id="glacier-info" class="info-panel">
+        <h3>Glacier Details</h3>
+        <hr>
+        <p class="hint">
+            Click a glacier marker on the map to view details.
+        </p>
+    </div>
+
+</div>
+
+<!-- Glacier Explorer Logic (AFTER Leaflet loads) -->
+<script src="{{ url_for('static', filename='js/glacier_explorer.js') }}"></script>
+
+{% endblock %}

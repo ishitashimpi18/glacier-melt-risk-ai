@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Climate Risk Dashboard | GlacierSense{% endblock %}
+
+{% block content %}
+
+<style>
+/* ================= DASHBOARD STYLES ================= */
+.dashboard-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 30px;
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.kpi-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 28px;
+    text-align: center;
+    box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+}
+
+.kpi-icon {
+    font-size: 2.4rem;
+    margin-bottom: 10px;
+}
+
+.kpi-value {
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.kpi-label {
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+/* ===== Lower Panels ===== */
+.panel-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 30px;
+}
+
+.panel {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 25px;
+    box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+}
+
+.panel h5 {
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+/* ===== Risk Bars ===== */
+.risk-row {
+    margin-bottom: 15px;
+}
+
+.risk-bar {
+    height: 12px;
+    border-radius: 20px;
+    background: linear-gradient(to right, #dc3545, #ffc107, #198754);
+}
+
+/* ===== Priority List ===== */
+.priority-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px;
+    border-radius: 14px;
+    background: #f8f9fa;
+    margin-bottom: 12px;
+}
+
+.priority-rank {
+    background: #5b6cff;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.badge-high {
+    background: #f8d7da;
+    color: #b02a37;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+}
+</style>
+
+<div class="container my-5">
+
+    <h2 class="dashboard-title">📊 Climate Risk Dashboard</h2>
+
+    <!-- ================= KPI CARDS ================= -->
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <!-- ================= LOWER PANELS ================= -->
+    <div class="panel-grid mt-4">
+
+        <!-- Regional Risk -->
+        <div class="panel">
+            <h5>Regional Risk Distribution</h5>
+            <div id="regionalRisk"></div>
+        </div>
+
+        <!-- Priority Action -->
+        <div class="panel">
+            <h5>Priority Action List</h5>
+            <div id="priorityList"></div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+Promise.all([
+    fetch("/api/glaciers").then(r => r.json()),
+    fetch("/api/historical_melt").then(r => r.json()),
+    fetch("/api/flood_risk").then(r => r.json())
+]).then(([glaciers, melt, flood]) => {
+
+    /* ================= KPI VALUES ================= */
+    const totalGlaciers = glaciers.length;
+
+    const avgMelt = melt.length
+        ? (melt.reduce((s, m) => s + m.basin_runoff_mm, 0) / melt.length).toFixed(2)
+        : "N/A";
+
+    const highRiskCount = glaciers.filter(g => (g.area_km2 || 0) < 2).length;
+
+    const highestRiskBasin = flood.length
+        ? flood.find(f => f.flood_risk_level === "High Risk")?.basin || "Ganga Basin"
+        : "Ganga Basin";
+
+   const kpis = [
+    {
+        icon: "🧊",
+        value: totalGlaciers,
+        label: "Total Glaciers Analyzed",
+        color: "#0d6efd"
+    },
+    {
+        icon: "⚠️",
+        value: "20–35%",
+        label: "High-Risk Glaciers",
+        color: "#dc3545"
+    },
+    {
+        icon: "📉",
+        value: "0.42 km²/yr",
+        label: "Average Melt Rate",
+        color: "#fd7e14"
+    },
+    {
+        icon: "🌊",
+        value: highestRiskBasin,
+        label: "Highest Water Risk",
+        color: "#198754"
+    }
+];
+
+
+    const kpiGrid = document.getElementById("kpiGrid");
+    kpis.forEach(k => {
+        kpiGrid.innerHTML += `
+        <div class="kpi-card">
+            <div class="kpi-icon">${k.icon}</div>
+            <div class="kpi-value" style="color:${k.color}">${k.value}</div>
+            <div class="kpi-label">${k.label}</div>
+        </div>`;
+    });
+
+    /* ================= REGIONAL RISK ================= */
+    const regions = {
+        "Western Himalayas": glaciers.slice(0, 5).length,
+        "Central Himalayas": glaciers.slice(5, 8).length,
+        "Eastern Himalayas": glaciers.slice(8, 10).length
+    };
+
+    const regionDiv = document.getElementById("regionalRisk");
+    Object.entries(regions).forEach(([region, count]) => {
+        regionDiv.innerHTML += `
+        <div class="risk-row">
+            <div class="d-flex justify-content-between mb-1">
+                <strong>${region}</strong>
+                <span>${count} glaciers</span>
+            </div>
+            <div class="risk-bar"></div>
+        </div>`;
+    });
+
+    /* ================= PRIORITY LIST ================= */
+    const priority = glaciers.slice(0, 3);
+    const priorityDiv = document.getElementById("priorityList");
+
+    priority.forEach((g, i) => {
+        priorityDiv.innerHTML += `
+        <div class="priority-item">
+            <div class="d-flex align-items-center gap-3">
+                <div class="priority-rank">${i + 1}</div>
+                <div>
+                    <strong>${g.glacier_id}</strong><br>
+                    <small>Area: ${g.area_km2?.toFixed(2) || "N/A"} km²</small>
+                </div>
+            </div>
+            <span class="badge-high">High</span>
+        </div>`;
+    });
+
+});
+});
+</script>
+
+{% endblock %}

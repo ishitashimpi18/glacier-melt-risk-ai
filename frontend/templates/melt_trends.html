@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="page-title">Glacier Melt Trend Analysis</h2>
+
+<p style="color:#cfe8ff; max-width:720px; margin-bottom:30px;">
+  Explore historical glacier mass balance trends alongside future melt projections.
+  These insights help understand long-term climate impacts on Himalayan glaciers.
+</p>
+
+<div class="cards-grid">
+
+  <!-- HISTORICAL CARD -->
+  <div class="card">
+    <h3 style="margin-bottom:12px; color:#0f172a;">
+      📉 Historical Mass Balance (2000–2024)
+    </h3>
+    <p style="font-size:13px; color:#475569; margin-bottom:14px;">
+      Observed average glacier mass changes derived from historical datasets.
+    </p>
+    <div id="hist-chart" style="height:380px;"></div>
+  </div>
+
+  <!-- FUTURE CARD -->
+  <div class="card">
+    <h3 style="margin-bottom:12px; color:#0f172a;">
+      🔮 Future Melt Projection (2025–2040)
+    </h3>
+    <p style="font-size:13px; color:#475569; margin-bottom:14px;">
+      Model-based projections showing expected glacier melt trends.
+    </p>
+    <div id="future-chart" style="height:380px;"></div>
+  </div>
+
+</div>
+
+<script>
+Promise.all([
+    fetch("/api/historical_melt").then(r => r.json()),
+    fetch("/api/future_melt").then(r => r.json())
+]).then(([hist, future]) => {
+
+    const histYears = hist.map(d => d.year);
+    const histMelt = hist.map(d => d.mass_change);
+
+    Plotly.newPlot("hist-chart", [{
+        x: histYears,
+        y: histMelt,
+        mode: "lines+markers",
+        name: "Historical",
+        line: { color: "#2563eb", width: 3 },
+        marker: { size: 6 }
+    }], {
+        title: "",
+        paper_bgcolor: "rgba(0,0,0,0)",
+        plot_bgcolor: "rgba(0,0,0,0)",
+        xaxis: { title: "Year" },
+        yaxis: { title: "Mean Mass Change" },
+        margin: { t: 20 }
+    });
+
+    const futYears = future.map(d => d.year);
+    const futMelt = future.map(d => d.predicted_melt);
+
+    Plotly.newPlot("future-chart", [{
+        x: futYears,
+        y: futMelt,
+        mode: "lines+markers",
+        name: "Future",
+        line: { color: "#dc2626", width: 3 },
+        marker: { size: 6 }
+    }], {
+        title: "",
+        paper_bgcolor: "rgba(0,0,0,0)",
+        plot_bgcolor: "rgba(0,0,0,0)",
+        xaxis: { title: "Year" },
+        yaxis: { title: "Predicted Melt" },
+        margin: { t: 20 }
+    });
+
+});
+</script>
+
+{% endblock %}

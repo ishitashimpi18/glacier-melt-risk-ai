@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Himalayan Glacier Risk</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body>
+<header class="navbar">
+    <div class="logo">🧊 GlacierRisk AI</div>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/glacier-explorer">Explorer</a>
+        <a href="/melt-trends">Trends</a>
+        <a href="/explainable-ai">XAI</a>
+        <a href="/vulnerability">Vulnerability</a>
+        <a href="/water-impact">Water</a>
+        <a href="/flood-risk">Flood</a>
+        <a href="/dashboard">Dashboard</a>
+    </nav>
+</header>
+
+<main class="content">
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">Himalayan Glacier Analysis | Powered by your backend data</footer>
+</body>
+</html>

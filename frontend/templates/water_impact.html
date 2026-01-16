@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Water Security Impact</h2>
+
+<p>This page links glacier melt to basin-scale water availability.</p>
+
+<div id="basin-chart" style="height:400px;"></div>
+
+<ul id="water-text"></ul>
+
+<script>
+fetch("/api/basin_runoff")
+  .then(r => r.json())
+  .then(data => {
+      const years = data.map(d => d.year);
+      const runoff = data.map(d => d.basin_runoff_mm);
+
+      Plotly.newPlot("basin-chart", [{
+          x: years,
+          y: runoff,
+          mode: "lines+markers"
+      }], {
+          title: "Basin-Wide Glacier Melt Contribution (mm)",
+          xaxis: {title: "Year"},
+          yaxis: {title: "Runoff depth (mm)"}
+      });
+
+      const maxYear = data.reduce((a,b) => a.basin_runoff_mm > b.basin_runoff_mm ? a : b);
+
+      const ul = document.getElementById("water-text");
+      ul.innerHTML = `
+        <li>Years with high basin runoff indicate strong dependency on glacier melt for river flows.</li>
+        <li>Year ${maxYear.year} shows the highest glacier contribution to runoff in the record.</li>
+        <li>Communities relying on Himalayan rivers are more exposed in high-runoff, high-variability years.</li>
+      `;
+  });
+</script>
+{% endblock %}

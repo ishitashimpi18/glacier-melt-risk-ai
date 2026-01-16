@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Explainable AI | GlacierRisk AI{% endblock %}
+
+{% block content %}
+
+<style>
+/* ===== Custom XAI Styling ===== */
+.xai-card {
+    border-radius: 18px;
+    background: linear-gradient(180deg, #ffffff, #f6f9ff);
+}
+
+.meaning-box {
+    background: #0b1f3a;
+    color: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    margin-top: 30px;
+}
+
+.meaning-item {
+    margin-bottom: 18px;
+}
+
+.bar {
+    height: 10px;
+    border-radius: 10px;
+    margin-top: 6px;
+}
+
+.bar.temp { background: #dc3545; width: 52%; }
+.bar.prec { background: #ffc107; width: 21%; }
+.bar.rad  { background: #0d6efd; width: 17%; }
+
+
+.badge-xai {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    border-radius: 20px;
+}
+</style>
+
+<div class="container my-5">
+
+    <!-- HEADER -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold">Explainable AI: Glacier Melt Drivers</h2>
+        <p class="text-muted">
+            Understanding how the AI model identifies the key climate factors
+            responsible for glacier mass change.
+        </p>
+    </div>
+
+    <!-- FEATURE IMPORTANCE -->
+    <div class="card p-4 mb-5 shadow-sm xai-card">
+        <h4 class="fw-semibold">Feature Importance Analysis</h4>
+
+        <div class="alert alert-primary mt-3">
+            <b>What this shows:</b>
+            Feature importance quantifies how strongly each variable contributes
+            to glacier melt predictions made by the AI model.
+        </div>
+
+        <div id="featureImportanceChart"></div>
+
+        <!-- 🔍 WHAT DOES THIS MEAN -->
+        <div class="meaning-box">
+            <h5 class="fw-bold mb-3">🧠 What Does This Mean?</h5>
+
+            <div class="meaning-item">
+                <span class="badge bg-danger badge-xai">Temperature</span>
+                <span class="float-end">≈ 48%</span>
+                <div class="bar temp"></div>
+                <small>
+                    Rising temperatures drive enhanced melting, but their
+                    influence is secondary to precipitation changes.
+                </small>
+            </div>
+
+            <div class="meaning-item">
+                <span class="badge bg-warning text-dark badge-xai">Precipitation change</span>
+                <span class="float-end">≈ 32%</span>
+                <div class="bar prec"></div>
+                <small>
+                    Changes in precipitation affect glacier mass change more than any other variable in your dataset.
+                    Snowfall vs rainfall strongly influences whether glaciers gain or lose mass.
+                </small>
+            </div>
+
+            <div class="meaning-item">
+                <span class="badge bg-primary badge-xai">Solar Radiation</span>
+                <span class="float-end">≈ 20%</span>
+                <div class="bar rad"></div>
+                <small>
+                    Higher solar radiation increases surface energy absorption,
+                    accelerating ice melt even under stable temperatures.
+                </small>
+            </div>
+
+        
+
+            <hr class="text-light">
+
+            <p class="mb-0">
+                <b>Scientific Insight:</b><br>
+                Glacier mass change in this study is driven primarily by
+                <b>climatic variables rather than glacier geometry</b>,
+                making climate change the dominant risk factor.
+            </p>
+        </div>
+    </div>
+
+    <!-- PARTIAL EFFECT -->
+    <div class="card p-4 shadow-sm xai-card">
+        <h4 class="fw-semibold">Partial Effect Analysis</h4>
+
+        <p class="text-muted">
+            These plots show how glacier mass change responds when a single
+            variable changes while all others remain constant.
+        </p>
+
+        <div id="partialEffectCharts"></div>
+
+        <div class="alert alert-info mt-4">
+            <b>Why this matters:</b>
+            Partial effects isolate individual climate drivers, making
+            AI predictions transparent and scientifically interpretable.
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* FEATURE IMPORTANCE */
+fetch("/api/feature_importance")
+.then(res => res.json())
+.then(data => {
+    Plotly.newPlot("featureImportanceChart", [{
+        x: data.map(d => d.importance),
+        y: data.map(d => d.feature),
+        type: "bar",
+        orientation: "h",
+        marker: { color: "#0d6efd" }
+    }], {
+        title: "Relative Importance of Glacier Melt Drivers",
+        margin: { l: 120 }
+    });
+});
+
+/* PARTIAL EFFECT */
+fetch("/api/partial_effects")
+.then(res => res.json())
+.then(data => {
+    const grouped = {};
+    data.forEach(d => {
+        if (!grouped[d.feature]) grouped[d.feature] = { x: [], y: [] };
+        grouped[d.feature].x.push(d.feature_value);
+        grouped[d.feature].y.push(d.predicted_melt);
+    });
+
+    const container = document.getElementById("partialEffectCharts");
+    Object.keys(grouped).forEach(feature => {
+        const div = document.createElement("div");
+        div.style.marginTop = "40px";
+        container.appendChild(div);
+
+        Plotly.newPlot(div, [{
+            x: grouped[feature].x,
+            y: grouped[feature].y,
+            mode: "lines+markers"
+        }], {
+            title: `Effect of ${feature} on Glacier Mass Change`,
+            xaxis: { title: feature },
+            yaxis: { title: "Predicted Mass Change" }
+        });
+    });
+});
+</script>
+
+{% endblock %}
